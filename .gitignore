@@ -1,1 +1,39 @@
-**/*.tfstate22
+terraform {
+  required_providers {
+    github = {
+      source = "integrations/github"
+      version = "5.7.0"
+    }
+  }
+}
+
+provider "github" {
+  # Configuration options
+
+  token = "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"
+}
+
+resource "github_branch" "development" {
+  repository = "app1"
+  branch     = "test1"
+  source_branch = "main"
+}
+
+resource "github_repository_file" "foo" {
+  repository          = "app1"
+  branch              = "test1"
+  file                = ".gitignore"
+  content             =  file("main.tf")
+  commit_message      = "Managed by Terraform"
+  commit_author       = "Terraform User"
+  commit_email        = "terraform@example.com"
+  overwrite_on_create = true
+}
+
+resource "github_repository_pull_request" "example" {
+    base_repository = "app1"
+    base_ref        = "main"
+    head_ref        = "test1"
+    title           = "My newest feature"
+    body            = "This will change everything"
+}
