@@ -50,3 +50,27 @@ public class CustomHttpServletRequestWrapper extends HttpServletRequestWrapper {
         return headerValues;
     }
 }
+
+
+
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+
+@Component
+public class CustomRequestFilter extends OncePerRequestFilter {
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        CustomHttpServletRequestWrapper customWrapper = new CustomHttpServletRequestWrapper(request);
+        customWrapper.addHeader("Custom-Header", "Modified Value");
+
+        filterChain.doFilter(customWrapper, response);
+    }
+}
+
