@@ -73,4 +73,20 @@ public class CustomRequestFilter extends OncePerRequestFilter {
         filterChain.doFilter(customWrapper, response);
     }
 }
+    @Bean
+    public FilterRegistrationBean<CustomRequestFilter> customRequestFilterRegistration() {
+        FilterRegistrationBean<CustomRequestFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new CustomRequestFilter());
+        registration.addUrlPatterns("/*");
+        return registration;
+    }
 
+
+
+    @Bean
+    public FilterRegistrationBean<CustomRequestFilter> customRequestFilterRegistration() {
+        FilterRegistrationBean<CustomRequestFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new CustomRequestFilter());
+        registration.addUrlPatterns("/*");
+        return registration;
+    }
