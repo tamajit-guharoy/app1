@@ -1,68 +1,32 @@
-public class CustomEndpointInterceptor implements EndpointInterceptor {
-
-    @Override
-    public boolean handleRequest(MessageContext messageContext, Object endpoint) throws Exception {
-        // Handle the request
-        // ...
-
-        return true;
-    }
-
-    @Override
-    public boolean handleResponse(MessageContext messageContext, Object endpoint) throws Exception {
-        // Handle the response
-        // ...
-
-        return true;
-    }
-
-    @Override
-    public boolean handleFault(MessageContext messageContext, Object endpoint) throws Exception {
-        // Handle the fault
-        // ...
-
-        return true;
-    }
-
-    @Override
-    public void afterCompletion(MessageContext messageContext, Object endpoint, Exception ex) throws Exception {
-        // Log the HTTP 400 errors
-        if (ex instanceof SoapFaultException && HttpStatus.BAD_REQUEST.value() == getStatusCode((SoapFaultException) ex)) {
-            System.out.println("HTTP 400 error occurred: " + ex.getMessage());
-        }
-    }
-
-    private int getStatusCode(SoapFaultException ex) {
-        SoapFault fault = ex.getFault();
-        if (fault instanceof Soap12Fault) {
-            return ((Soap12Fault) fault).getFaultCode().getValue();
-        } else {
-            return fault.getFaultCode();
-        }
-    }
+@Bean
+public EndpointExceptionResolver customEndpointExceptionResolver() {
+    return new CustomEndpointExceptionResolver();
 }
-====================================
 
-    @Bean
-    public CustomEndpointInterceptor endpointInterceptor() {
-        return new CustomEndpointInterceptor();
-    }
-
-    @Bean
-    public SaajSoapMessageFactory messageFactory() {
-        return new SaajSoapMessageFactory();
-    }
-======================================
-
-public class CustomMessageDispatcherServlet extends AbstractSoapMessageDispatcherServlet {
+public class CustomEndpointExceptionResolver implements EndpointExceptionResolver {
 
     @Override
-    protected void doService(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        if (request.getContentLength() == 0) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Empty SOAP request");
-            return;
+    public boolean resolveException(MessageContext messageContext, Object endpoint, Exception ex) {
+        if (ex instanceof MethodArgumentNotValidException) {
+            // Handle validation errors and construct an appropriate SOAP fault response
+            // For example, you can create a custom SOAP fault object and return it
+            SoapFault fault = createCustomSoapFault(ex);
+            messageContext.getResponse().setPayload(fault);
+            messageContext.getResponse().setFault(true);
+            messageContext.getResponse().setException(ex);
+            return true;
         }
-
-        super.doService(request, response);
+        
+        // Handle other exceptions and return false to allow them to be processed by other resolvers
+        return false;
+    }
+    
+    // Helper method to create a custom SOAP fault object based on the exception
+    private SoapFault createCustomSoapFault(Exception ex) {
+        // Create and configure the SOAP fault object
+        SoapFault fault = new SoapFault();
+        fault.setMessage(ex.getMessage());
+        // Set other properties of the fault as needed
+        return fault;
     }
 }
