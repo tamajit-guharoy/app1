@@ -1,36 +1,68 @@
-@ControllerAdvice
-public class CustomSoapExceptionHandler extends ResponseEntityExceptionHandler {
+public class CustomEndpointInterceptor implements EndpointInterceptor {
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
-                                                                  HttpHeaders headers,
-                                                                  HttpStatus status,
-                                                                  WebRequest request) {
-        // Handle validation errors and construct an appropriate SOAP fault response
-        // For example, you can create a custom SOAP fault object and return it
-        SoapFault fault = createCustomSoapFault(ex);
-        return handleExceptionInternal(ex, fault, headers, HttpStatus.BAD_REQUEST, request);
+    @Override
+    public boolean handleRequest(MessageContext messageContext, Object endpoint) throws Exception {
+        // Handle the request
+        // ...
+
+        return true;
     }
 
-    // Define other exception handlers for specific exceptions related to HTTP 400 errors
+    @Override
+    public boolean handleResponse(MessageContext messageContext, Object endpoint) throws Exception {
+        // Handle the response
+        // ...
 
-    // ...
-
-    // Define a fallback handler for generic exceptions
-    @ExceptionHandler(Exception.class)
-    protected ResponseEntity<Object> handleGenericException(Exception ex, WebRequest request) {
-        // Handle any generic exceptions that are not explicitly handled
-        // Construct an appropriate SOAP fault response for generic exceptions
-        SoapFault fault = createCustomSoapFault(ex);
-        return handleExceptionInternal(ex, fault, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+        return true;
     }
 
-    // Helper method to create a custom SOAP fault object based on the exception
-    private SoapFault createCustomSoapFault(Exception ex) {
-        // Create and configure the SOAP fault object
-        SoapFault fault = new SoapFault();
-        fault.setMessage(ex.getMessage());
-        // Set other properties of the fault as needed
-        return fault;
+    @Override
+    public boolean handleFault(MessageContext messageContext, Object endpoint) throws Exception {
+        // Handle the fault
+        // ...
+
+        return true;
+    }
+
+    @Override
+    public void afterCompletion(MessageContext messageContext, Object endpoint, Exception ex) throws Exception {
+        // Log the HTTP 400 errors
+        if (ex instanceof SoapFaultException && HttpStatus.BAD_REQUEST.value() == getStatusCode((SoapFaultException) ex)) {
+            System.out.println("HTTP 400 error occurred: " + ex.getMessage());
+        }
+    }
+
+    private int getStatusCode(SoapFaultException ex) {
+        SoapFault fault = ex.getFault();
+        if (fault instanceof Soap12Fault) {
+            return ((Soap12Fault) fault).getFaultCode().getValue();
+        } else {
+            return fault.getFaultCode();
+        }
+    }
+}
+====================================
+
+    @Bean
+    public CustomEndpointInterceptor endpointInterceptor() {
+        return new CustomEndpointInterceptor();
+    }
+
+    @Bean
+    public SaajSoapMessageFactory messageFactory() {
+        return new SaajSoapMessageFactory();
+    }
+======================================
+
+public class CustomMessageDispatcherServlet extends AbstractSoapMessageDispatcherServlet {
+
+    @Override
+    protected void doService(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        if (request.getContentLength() == 0) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Empty SOAP request");
+            return;
+        }
+
+        super.doService(request, response);
     }
 }
